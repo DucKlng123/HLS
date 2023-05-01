@@ -62,8 +62,8 @@ void read(string filename){
 
         getline(fs,line);
         iss.clear() ; iss.str(line);
-        iss >> tmp.nCompatibleOp;
-        for(int k = 0 ; k < tmp.nCompatibleOp ; k++){
+        iss >> tmp.nCompatibleResources;
+        for(int k = 0 ; k < tmp.nCompatibleResources ; k++){
             int opType;
             iss >> opType;
             tmp.opTypes.push_back(opType);
@@ -90,7 +90,7 @@ void read(string filename){
         BlockInfo tmp;
         getline(fs,line);
         iss.clear() ; iss.str(line);
-        iss >> tmp.nOp >> tmp.nPred >> tmp.nSucc >> tmp.expectedTime;
+        iss >> tmp.nOp >> tmp.nPred >> tmp.nSucc >> tmp.times;
         int control_n[3] = {tmp.nOp, tmp.nPred, tmp.nSucc};
         for(int k = 0 ; k < 3 ; k++){
             getline(fs,line);

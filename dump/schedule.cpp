@@ -1,6 +1,7 @@
 #include<iostream>
 #include"define.h"
 #include<algorithm>
+#include<queue>
 
 int maxOp = 15 ; //一次调度的最大操作数
 
@@ -12,6 +13,7 @@ dominator[n][i] : dominator(n) 包含 i   true/false
 思路：遍历(dominator数组需要）+前序递归(path需要)
 */
 bool **Dominator;
+vector<int> BlockOrder;
 void dominator(vector<int> &path){
     int nowid = path[path.size() - 1];
     //熄灭未在path上的路径
@@ -35,4 +37,113 @@ void dominator(vector<int> &path){
             path.pop_back();
         }
     }
+}
+typedef struct inDegreeBlock
+{
+    int index ;
+    int inDegree;
+}inDeBlock;
+
+class comp{
+    bool operator()(inDeBlock a, inDeBlock b){
+        return a.inDegree > b.inDegree;
+    };
+};
+void defBlockOrder(){
+    /*先建立dominator关系*/
+    Dominator = new bool* [nBlock];
+    for(int i = 0 ; i < nBlock ; i++){
+        Dominator[i] = new bool [nBlock];
+        for(int k = 0 ; k < nBlock ; k++){
+            Dominator[i][k] = true;
+        }
+    }
+    if(blocks[0].nPred != 0){
+        cout << "entry is not block0" << endl;
+    }
+    else {
+        vector<int> path(1,0);
+        dominator(path);
+    }
+
+    /*然后通过dominator消回边*/
+    //结点指向dom(n)就是回边
+    vector<int> newPreds;
+    for(int i = 0 ; i < nBlock ; i++){
+        for(int k = 0 ; k < blocks[i].nPred ; k++){
+            int preBlock = blocks[i].preds[k];
+            if(Dominator[preBlock][i] == true){
+                for(auto it = blocks[preBlock].succs.begin(); it != blocks[preBlock].succs.end() ; it++){
+                    if(*it == i){
+                        blocks[preBlock].succs.erase(it);
+                        blocks[preBlock].nSucc -- ;
+                        break;
+                    }
+                }
+            }//回边
+            else{//非回边
+                newPreds.push_back(preBlock);
+            }
+        }//每个pred
+        blocks[i].nPred = newPreds.size();
+        blocks[i].preds = newPreds;
+    }//每个block
+
+    /*blocks拓扑排序*/
+    int* degree = new int[nBlock];
+    bool* if_order = new bool[nBlock];
+    for(int i = 0; i < nBlock; ++i){
+        if_order[i] = false;
+        degree[i] = blocks[i].nPred;
+    }
+
+    while(BlockOrder.size() != nBlock){
+        for(int i = 0; i < nBlock; ++i)
+            if(degree[i] == 0 && !if_order[i]){
+                if_order[i] = true;
+                BlockOrder.push_back(i);
+                for(int j = 0; j < blocks[i].nSucc; ++j)
+                    degree[blocks[i].succs[j]]--;
+            }
+    }
+
+    for(int i = 0 ; i < nBlock ; i++){
+        delete [] Dominator[i];
+    }
+    delete[] Dominator;
+    delete[] if_order;
+    delete[] degree;
+}
+
+
+int heuristic(vector<int> &scheduleOps, int blockBeginCylce){
+    vector<int> readyList;
+
+    /*ALAP*/
+    int opNum = scheduleOps.size();
+    vector<TmpInfo> opNodes(opNum);
+    for(int i = 0 ; i < opNum ; i++){
+        int opIndex = scheduleOps[i];
+        bool ready = true;
+        for(int k = 0; k < ops[opIndex].nInput ; k++){
+            int sourceIndex = ops[opIndex].inputs[k];
+            if(sourceIndex == -1){
+                continue;
+            }//输入为参数或常数 ,下一个输入
+            else{
+                auto p = find(scheduleOps.begin(),scheduleOps.end(),sourceIndex);
+                if(p != scheduleOps.end()){
+                    ready = false;
+                    int sourceIDinSche = distance(scheduleOps.begin(),p);
+                    opNodes[sourceIDinSche].nSucc ++ ;
+                    opNodes[sourceIDinSche].succs.push_back(i);
+                    opNodes[i].npred ++ ;
+                    opNodes[i].preds.push_back(sourceIDinSche);
+                }//找到了依赖
+            }//输入依赖
+        }//每个输入
+        if(ready)
+            readyList.push_back(i);//无前驱
+    }//每个OP
+
 }
