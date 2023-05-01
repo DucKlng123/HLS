@@ -116,10 +116,13 @@ void defBlockOrder(){
 }
 
 
+vector<int> beginTime;//每个操作的开始时间
+
 int heuristic(vector<int> &scheduleOps, int blockBeginCylce){
     vector<int> readyList;
 
     /*ALAP*/
+    //找到该部分scheduledOps的依赖关系,并把依赖关系存储到opNodes中
     int opNum = scheduleOps.size();
     vector<TmpInfo> opNodes(opNum);
     for(int i = 0 ; i < opNum ; i++){
@@ -145,5 +148,28 @@ int heuristic(vector<int> &scheduleOps, int blockBeginCylce){
         if(ready)
             readyList.push_back(i);//无前驱
     }//每个OP
+
+    //ALAP
+    vector<int> endTime(opNum,1);//记录每个操作完成的时间
+    bool flag = true ; //还有未schedule的结点
+    while(flag){
+        //没有后继结点的结点schedule
+        for(int i = 0 ; i < opNum ; i++){
+            if(opNodes[i].nSucc == 0){//后继结点已处理完毕
+                if(opNodes[i].succs.size() == 0){//无依赖
+                    endTime[i] = 0;
+                    beginTime[i] = (-1) * opTool[ops[scheduleOps[i]].opType]
+                }
+            }
+        }
+        //一轮schedule完成后，判断是否还有未schedule结点
+        flag = false;
+        for(int i = 0 ; i < opNum ; i++){
+            if(endTime[i] == 1){
+                flag = true;
+                break;
+            }
+        }
+    }
 
 }
