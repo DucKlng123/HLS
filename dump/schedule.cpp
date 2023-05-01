@@ -117,6 +117,9 @@ void defBlockOrder(){
 
 
 vector<int> beginTime;//每个操作的开始时间
+int lat(int op_resource){
+    return resouceLibrary[op_resource].latency + 1;
+}
 
 int heuristic(vector<int> &scheduleOps, int blockBeginCylce){
     vector<int> readyList;
@@ -160,20 +163,20 @@ int heuristic(vector<int> &scheduleOps, int blockBeginCylce){
             //处理时序
                 if(opNodes[i].succs.size() == 0){//无依赖
                     endTime[i] = 0;
-                    beginTime[i] = (-1) * opTool[ops[scheduleOps[i]].opType];
+                    beginTime[i] = -lat(opTool[ops[scheduleOps[i]].opType]);
                 }
                 else{
-                    int sourceNum = opNodes[i].nSucc;
+                    int sourceNum = opNodes[i].succs.size();
                     int minSouceEnd = 1 ;
                     for(int k = 0 ; k < sourceNum ; k++){
-                        minSouceEnd = min(minSouceEnd , endTime[opNodes[i].succ[k]]);
+                        minSouceEnd = min(minSouceEnd , beginTime[opNodes[i].succs[k]]);
                     }
-                    endTime[i] = minSouceEnd;
+                    endTime[i] = minSouceEnd - 1;
                     beginTime[i] = minSouceEnd - lat(opTool[ops[scheduleOps[i]].opType]);
 
                 }//有依赖
             //处理依赖关系,前序结点出度-1
-                int predNum = opNodes[i].nPred;
+                int predNum = opNodes[i].npred;
                 for(int k = 0 ; k < predNum ; k++){
                     int predId = opNodes[i].preds[k];
                     opNodes[predId].nSucc -- ;
@@ -200,4 +203,50 @@ int heuristic(vector<int> &scheduleOps, int blockBeginCylce){
 
     //List schedule
     
+}
+
+void initialOpTool(){
+    opTool = new int[nOpType];
+    for(int i = 0 ; i < nOpType ; i++){
+        opTool[i] = -1;
+    }
+
+    //allocation
+    vector<vector<int>> opToResouce;
+    vector<int> opFrequency;
+    vector<bool> opResouceAvai;
+    for(int i = 0 ; i < nOpType ; i++){
+        opToResouce.push_back(vector<int>{});
+        opFrequency.push_back(0);
+        opResouceAvai.push_back(false);
+    }
+
+    for(int i = 0 ; i < resouceLibrary.size(); i++){
+        auto res = resouceLibrary[i];
+        for(int k = 0 ; k < res.nCompatibleResources ; k++){
+            opToResouce[res.opTypes[k]].push_back(i);
+        }
+    }
+
+    for(int i = 0 ; i < nOperation ; i++){
+        opFrequency[ops[i].opType] ++ ;
+    }
+
+    int areaSum = 0 ;
+    for(int i = 0 ; i < nOpType ; i++){
+        if(opFrequency[i] == 0 || opToResouce[i].size() == 0){//没有操作需要使用该资源,或者不存在使用该资源的操作
+            opResouceAvai[i] = true;
+        }
+        else if(opToResouce[i].size() == 1 && opResouceAvai[i] == false){//只有一种资源执行该操作
+            int res = opToResouce[i][0];
+            areaSum += resouceLibrary[res].area;
+            for(int k = 0 ; k < resouceLibrary[res].nCompatibleResources ; k++){
+                int tmpOpType = resouceLibrary[res].opTypes[k];
+                if(opResouceAvai[tmpOpType] == false){
+                    opResouceAvai[tmpOpType] = true;
+                    opTool[tmpOpType] = res;
+                }
+            }
+        }
+    }
 }
