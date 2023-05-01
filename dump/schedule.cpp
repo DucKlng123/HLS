@@ -4,7 +4,7 @@
 #include<queue>
 
 int maxOp = 15 ; //一次调度的最大操作数
-
+int* opTool;
 //得到dominator树
 /*
 dom(n) = 所有经过 Blockn 的path的交集
@@ -150,16 +150,37 @@ int heuristic(vector<int> &scheduleOps, int blockBeginCylce){
     }//每个OP
 
     //ALAP
+    int min_begin = 0 ;
     vector<int> endTime(opNum,1);//记录每个操作完成的时间
     bool flag = true ; //还有未schedule的结点
     while(flag){
         //没有后继结点的结点schedule
         for(int i = 0 ; i < opNum ; i++){
             if(opNodes[i].nSucc == 0){//后继结点已处理完毕
+            //处理时序
                 if(opNodes[i].succs.size() == 0){//无依赖
                     endTime[i] = 0;
-                    beginTime[i] = (-1) * opTool[ops[scheduleOps[i]].opType]
+                    beginTime[i] = (-1) * opTool[ops[scheduleOps[i]].opType];
                 }
+                else{
+                    int sourceNum = opNodes[i].nSucc;
+                    int minSouceEnd = 1 ;
+                    for(int k = 0 ; k < sourceNum ; k++){
+                        minSouceEnd = min(minSouceEnd , endTime[opNodes[i].succ[k]]);
+                    }
+                    endTime[i] = minSouceEnd;
+                    beginTime[i] = minSouceEnd - lat(opTool[ops[scheduleOps[i]].opType]);
+
+                }//有依赖
+            //处理依赖关系,前序结点出度-1
+                int predNum = opNodes[i].nPred;
+                for(int k = 0 ; k < predNum ; k++){
+                    int predId = opNodes[i].preds[k];
+                    opNodes[predId].nSucc -- ;
+                }
+
+                min_begin = min(min_begin,beginTime[i]);
+
             }
         }
         //一轮schedule完成后，判断是否还有未schedule结点
@@ -170,6 +191,13 @@ int heuristic(vector<int> &scheduleOps, int blockBeginCylce){
                 break;
             }
         }
+    }//schedule完毕
+    min_begin = - min_begin;
+    for(int i = 0 ; i < opNum ; i++){
+        beginTime[i] += min_begin;
     }
 
+
+    //List schedule
+    
 }
